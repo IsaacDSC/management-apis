@@ -3,8 +3,11 @@ package main
 import (
 	"bff/internal/management/infra/containers"
 	"bff/internal/management/web"
+	"bff/internal/management/web/middlewares"
+	"bff/pkg/cherlog"
 	"database/sql"
 	_ "github.com/lib/pq"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"os"
@@ -13,7 +16,7 @@ import (
 func main() {
 	conn, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatalf("Erro ao conectar ao banco de dados: %v", err)
+		log.Fatalf("Error on connection database: %v", err)
 	}
 
 	defer conn.Close()
@@ -26,11 +29,22 @@ func main() {
 	for route, handler := range hd.GetRoutes() {
 		http.HandleFunc(route, func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Content-Type", "application/json")
-			if err := handler(writer, request); err != nil {
+
+			ctx := middlewares.WithRequestLogger(request.Context(), request)
+			request = request.WithContext(ctx)
+
+			lrw := &middlewares.LoggingResponseWriter{ResponseWriter: writer}
+			l := cherlog.GetLogFromCtx(ctx)
+			l.Info("Request")
+
+			if err := handler(lrw, request); err != nil {
 				http.Error(writer, err.Error(), http.StatusInternalServerError)
 			}
 
-			log.Println("[*] Request: ", request.Method, request.URL.Path)
+			l.Info("Response",
+				zap.Int("status", lrw.Status),
+				zap.String("body", string(lrw.Body)),
+			)
 		})
 	}
 

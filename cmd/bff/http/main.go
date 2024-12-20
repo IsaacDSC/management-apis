@@ -2,9 +2,12 @@ package main
 
 import (
 	"bff/internal/bff/restapi"
+	"bff/internal/management/web/middlewares"
+	"bff/pkg/cherlog"
 	"context"
 	"database/sql"
 	_ "github.com/lib/pq"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"os"
@@ -28,9 +31,22 @@ func main() {
 		log.Println("[*] registry routers: ", path)
 		http.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Content-Type", "application/json")
-			if err := handler(writer, request); err != nil {
+
+			ctx := middlewares.WithRequestLogger(request.Context(), request)
+			request = request.WithContext(ctx)
+
+			lrw := &middlewares.LoggingResponseWriter{ResponseWriter: writer}
+			l := cherlog.GetLogFromCtx(ctx)
+			l.Info("Request")
+
+			if err := handler(lrw, request); err != nil {
 				http.Error(writer, err.Error(), http.StatusInternalServerError)
 			}
+
+			l.Info("Response",
+				zap.Int("http.response.status", lrw.Status),
+				zap.String("http.response.body", string(lrw.Body)),
+			)
 
 			log.Println("[*] request: ", request.URL.Path)
 		})
