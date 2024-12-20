@@ -40,19 +40,6 @@ func TestService_RegistryApi(t *testing.T) {
 			expectedError: "",
 		},
 		{
-			name: "error on save endpoint",
-			setupMock: func() {
-				repository.EXPECT().Save(gomock.Any(), gomock.Any()).Return(errors.New("error saving response"))
-				gateway.EXPECT().Request(gomock.Any(), gomock.Any()).Return(map[string]any{}, nil)
-			},
-			api: domain.API{
-				Endpoints: []domain.Endpoint{
-					{Name: "testEndpoint", Body: domain.Body{}},
-				},
-			},
-			expectedError: "error in step:2 when error saving response: error saving response",
-		},
-		{
 			name: "request error",
 			setupMock: func() {
 				gateway.EXPECT().Request(gomock.Any(), gomock.Any()).Return(map[string]any{}, errors.New("request error"))

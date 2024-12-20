@@ -40,7 +40,7 @@ func TestTypeCasting(t *testing.T) {
 	funcMain := ` func main(){println("ok")}`
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := NewTypesCasting()
+			e := NewTypesCasting("teste")
 			cast := e.Cast(tt.response)
 			cast = fmt.Sprintf("package main\n\n%s\n\n%s", funcMain, cast)
 			assert.NoError(t, os.WriteFile("./tmp/main.go", []byte(cast), 0644))
