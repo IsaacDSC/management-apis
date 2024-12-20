@@ -1,4 +1,4 @@
-package postman
+package tests
 
 import (
 	"bff/internal/management/domain"
